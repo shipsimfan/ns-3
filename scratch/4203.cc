@@ -1,4 +1,8 @@
+#include <ns3/buildings-helper.h>
 #include <ns3/core-module.h>
+#include <ns3/lte-module.h>
+#include <ns3/mobility-module.h>
+#include <ns3/network-module.h>
 
 using namespace ns3;
 
@@ -9,25 +13,15 @@ enum Codec {
     G729,
 };
 
-void display_simulation_info(Codec codec, int *node_users, int node_users_len);
-
-const char *get_codec_name(Codec codec) {
-    switch (codec) {
-    case Codec::G711:
-        return "G711";
-    case Codec::G729:
-        return "G729";
-    default:
-        return "Unknown Codec";
-    }
-}
+void display_simulation_info(Codec codec, int num_users);
+void run_simulation(Codec codec, int num_users);
 
 int main(int argc, char *argv[]) {
     // Verify argument count
-    if (argc < 3) {
+    if (argc != 3) {
         std::string usage_message("USAGE: ");
         usage_message.append(argv[0]);
-        usage_message.append(" CODEC NODE_USERS+");
+        usage_message.append(" CODEC USERS");
 
         NS_LOG_ERROR("No specified codec or simulation parameters");
         NS_LOG_ERROR(usage_message);
@@ -50,29 +44,82 @@ int main(int argc, char *argv[]) {
     }
 
     // Parse node users
-    int node_users[argc - 2];
-    for (int i = 2; i < argc; i++)
-        node_users[i - 2] = std::stoi(argv[i], 0, 0);
+    int num_users = std::stoi(argv[2]);
 
     // Display simulation information
-    display_simulation_info(codec, node_users, argc - 2);
+    display_simulation_info(codec, num_users);
 
-    // Create simulation
+    // Run simulation
+    run_simulation(codec, num_users);
+
+    NS_LOG_INFO("Simulation completed successfully");
 
     return 0;
 }
 
-void display_simulation_info(Codec codec, int *node_users, int node_users_len) {
+const char *get_codec_name(Codec codec) {
+    switch (codec) {
+    case Codec::G711:
+        return "G711";
+    case Codec::G729:
+        return "G729";
+    default:
+        return "Unknown Codec";
+    }
+}
+
+void display_simulation_info(Codec codec, int num_users) {
     std::string codec_string("Selected Codec: ");
     codec_string.append(get_codec_name(codec));
     NS_LOG_INFO(codec_string);
 
-    for (int i = 0; i < node_users_len; i++) {
-        std::string display("Node ");
-        display.append(std::to_string(i + 1));
-        display.append(": ");
-        display.append(std::to_string(node_users[i]));
-        display.append(" Users");
-        NS_LOG_INFO(display);
-    }
+    std::string num_string("Number of Users: ");
+    num_string.append(std::to_string(num_users));
+    NS_LOG_INFO(num_string);
+}
+
+// Modified from src/lte/examples/lena-simple.cc
+void run_simulation(Codec codec, int num_users) {
+    // Create LTE Helper
+    Ptr<LteHelper> lte_helper = CreateObject<LteHelper>();
+
+    // Create ENB Nodes
+    NodeContainer base_station;
+    base_station.Create(1);
+
+    // Create UE Nodes
+    NodeContainer users;
+    users.Create(num_users);
+
+    // Constant position for the base station
+    MobilityHelper mobility_helper;
+    mobility_helper.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+    mobility_helper.Install(base_station);
+    BuildingsHelper::Install(base_station);
+
+    // Constant position for the users
+    mobility_helper.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+    mobility_helper.Install(users);
+    BuildingsHelper::Install(users);
+
+    // Create devices
+    NetDeviceContainer base_station_devices;
+    NetDeviceContainer user_devices;
+
+    base_station_devices = lte_helper->InstallEnbDevice(base_station);
+    user_devices = lte_helper->InstallUeDevice(users);
+
+    // Attach the users to the base station
+    lte_helper->Attach(user_devices, base_station_devices.Get(0));
+
+    // Active a "data radio bearer" (i.e. the connection)
+    enum EpsBearer::Qci q = EpsBearer::GBR_CONV_VOICE;
+    EpsBearer bearer(q);
+    lte_helper->ActivateDataRadioBearer(user_devices, bearer);
+    lte_helper->EnableTraces();
+
+    Simulator::Stop(Seconds(1.0));
+    Simulator::Run();
+
+    Simulator::Destroy();
 }
