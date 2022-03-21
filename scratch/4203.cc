@@ -20,7 +20,7 @@ enum Codec {
 void display_simulation_info(Codec codec, uint32_t num_users);
 void run_simulation(Codec codec, uint32_t num_users);
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     LogComponentEnable("4203Simulator", LOG_LEVEL_ALL);
 
     // Verify argument count
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-const char *get_codec_name(Codec codec) {
+const char* get_codec_name(Codec codec) {
     switch (codec) {
     case Codec::G711:
         return "G711";
