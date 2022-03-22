@@ -7,6 +7,7 @@
 #include <ns3/mobility-module.h>
 #include <ns3/network-module.h>
 #include <ns3/point-to-point-helper.h>
+#include <ns3/voip-helper.h>
 
 using namespace ns3;
 
@@ -21,7 +22,7 @@ void display_simulation_info(Codec codec, uint32_t num_users);
 void run_simulation(Codec codec, uint32_t num_users);
 
 int main(int argc, char* argv[]) {
-    LogComponentEnable("4203Simulator", LOG_LEVEL_ALL);
+    LogComponentEnable("4203Simulator", LOG_LEVEL_INFO);
 
     // Verify argument count
     if (argc != 3) {
@@ -177,29 +178,32 @@ void run_simulation(Codec codec, uint32_t num_users) {
     Ipv6Address remote_host_addr = internet_ip_interfaces.GetAddress(1, 1);
 
     // Start echo applications
-    UdpEchoServerHelper echo_server(9);
+    VoIPServerHelper voip_server(9, num_users);
 
-    ApplicationContainer server_applications = echo_server.Install(remote_host);
+    ApplicationContainer server_applications = voip_server.Install(remote_host);
 
     server_applications.Start(Seconds(1.0));
     server_applications.Stop(Seconds(21.0));
 
     ApplicationContainer client_applications[num_users];
     for (uint32_t i = 0; i < num_users; i++) {
-        UdpEchoClientHelper echo_client(remote_host_addr, 9);
+        VoIPClientHelper voip_client(remote_host_addr, 9, i);
 
-        echo_client.SetAttribute("MaxPackets", UintegerValue(1000));
-        echo_client.SetAttribute("Interval", TimeValue(Seconds(1.0)));
-        echo_client.SetAttribute("PacketSize", UintegerValue(1024));
+        // How often to make a call
+        voip_client.SetAttribute("Frequency", TimeValue(Seconds(8.0)));
+        // How long for the call
+        voip_client.SetAttribute("Duration", TimeValue(Seconds(2.0)));
+        // When to start calling
+        voip_client.SetAttribute("Start", TimeValue(Seconds((double)i)));
 
-        client_applications[i] = echo_client.Install(users.Get(i));
+        client_applications[i] = voip_client.Install(users.Get(i));
 
         client_applications[i].Start(Seconds(1.0));
         client_applications[i].Stop(Seconds(20.0));
     }
 
-    LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_ALL);
-    LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_ALL);
+    LogComponentEnable("VoIPClientApplication", LOG_LEVEL_INFO);
+    LogComponentEnable("VoIPServerApplication", LOG_LEVEL_INFO);
 
     Simulator::Stop(Seconds(21.0));
     Simulator::Run();
