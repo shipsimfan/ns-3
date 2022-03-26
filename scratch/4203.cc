@@ -15,7 +15,7 @@ NS_LOG_COMPONENT_DEFINE("4203Simulator");
 
 enum Codec {
     G711,
-    G729,
+    G726,
 };
 
 void display_simulation_info(Codec codec, uint32_t num_users);
@@ -40,8 +40,8 @@ int main(int argc, char* argv[]) {
     Codec codec;
     if (strcmp(argv[1], "g711") == 0)
         codec = Codec::G711;
-    else if (strcmp(argv[1], "g729") == 1)
-        codec = Codec::G729;
+    else if (strcmp(argv[1], "g726") == 0)
+        codec = Codec::G726;
     else {
         std::string error_message("Invalid codec: \"");
         error_message.append(argv[1]);
@@ -68,8 +68,8 @@ const char* get_codec_name(Codec codec) {
     switch (codec) {
     case Codec::G711:
         return "G711";
-    case Codec::G729:
-        return "G729";
+    case Codec::G726:
+        return "G726";
     default:
         return "Unknown Codec";
     }
