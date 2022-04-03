@@ -203,7 +203,7 @@ void run_simulation(Codec codec, uint32_t num_users) {
     }
 
     LogComponentEnable("VoIPClientApplication", LOG_LEVEL_INFO);
-    LogComponentEnable("VoIPServerApplication", LOG_LEVEL_INFO);
+    //LogComponentEnable("VoIPServerApplication", LOG_LEVEL_INFO);
 
     Simulator::Stop(Seconds(21.0));
     Simulator::Run();
