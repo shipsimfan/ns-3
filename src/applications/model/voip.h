@@ -2,8 +2,7 @@
 #define VOIP_H
 
 #include "ns3/type-name.h"
-
-#define G711_DATA_LENGTH 125
+#include "codec-711.h"
 
 struct VoIPPacket {
     uint32_t id;

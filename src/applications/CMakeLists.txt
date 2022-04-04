@@ -10,6 +10,7 @@ build_lib(
     helper/voip-helper.cc
     model/application-packet-probe.cc
     model/bulk-send-application.cc
+    model/codec-711.cc
     model/onoff-application.cc
     model/packet-loss-counter.cc
     model/packet-sink.cc
@@ -38,6 +39,7 @@ build_lib(
     model/application-packet-probe.h
     model/bulk-send-application.h
     model/onoff-application.h
+    model/codec-711.h
     model/packet-loss-counter.h
     model/packet-sink.h
     model/seq-ts-echo-header.h

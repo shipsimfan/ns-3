@@ -54,6 +54,9 @@ class VoIPClient : public Application {
      * \param dt time interval between packets.
      */
     void ScheduleTransmit(Time dt);
+
+    short VoiceGenerator(double time);
+
     /**
      * \brief Send a packet
      */

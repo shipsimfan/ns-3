@@ -48,3 +48,5 @@ cmake-build-release/
 .vscode/*
 !.vscode/launch.json
 !.vscode/tasks.json
+
+G711encoding.csv

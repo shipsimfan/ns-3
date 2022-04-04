@@ -1,4 +1,5 @@
 #include "voip-client.h"
+#include "codec-711.h"
 #include "ns3/inet-socket-address.h"
 #include "ns3/inet6-socket-address.h"
 #include "ns3/ipv4-address.h"
@@ -13,14 +14,19 @@
 #include "ns3/uinteger.h"
 
 #include "voip.h"
+#include <fstream>
+#include <math.h>
 
+#define PI 3.1415926
+#define PACKETRATE 50.0
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("VoIPClientApplication");
 
 NS_OBJECT_ENSURE_REGISTERED(VoIPClient);
 
-const Time PACKET_INTERVAL = Seconds(1.0 / 64.0);
+const Time PACKET_INTERVAL = Seconds(1.0 / PACKETRATE);
+const double SAMPLE_RATE = (1.0 / PACKETRATE) / 1024.0;
 
 TypeId VoIPClient::GetTypeId(void) {
     static TypeId tid =
@@ -153,6 +159,19 @@ void VoIPClient::ScheduleTransmit(Time dt) {
     m_sendEvent = Simulator::Schedule(dt, &VoIPClient::Send, this);
 }
 
+short VoIPClient::VoiceGenerator(double time) {
+    // input a time to the sound wave function
+    // generate a double
+    // use for encode
+
+    // * 30000 just to get the double big enough to convert
+    double voiceDataDouble = sin(440 * 2 * PI * time) * 30000;
+    // convert it to short
+    short voiceData = (short)voiceDataDouble;
+
+    return voiceData;
+}
+
 void VoIPClient::Send(void) {
     NS_LOG_FUNCTION(this);
 
@@ -164,7 +183,38 @@ void VoIPClient::Send(void) {
     vpacket.sent_time = Simulator::Now().GetMilliSeconds();
 
     memset(vpacket.data, 0, sizeof(vpacket.data));
+
     // TODO: Generate voice data & encode it
+    double now = Simulator::Now().GetSeconds();
+
+    // make a input list
+    short input[G711_DATA_LENGTH];
+
+    // assign it through for loop
+    for (int i = 0; i < G711_DATA_LENGTH; i++) {
+        input[i] = VoiceGenerator(now + i * SAMPLE_RATE);
+    }
+
+    G711encode(input, vpacket.data);
+
+    if (m_id == 0 && m_next_index == 0) {
+        std::ofstream file("./G711encoding.csv");
+        for (int i = 0; i < G711_DATA_LENGTH; i++) {
+            file << input[i] << ", ";
+        }
+        file << std::endl;
+
+        for (int i = 0; i < G711_DATA_LENGTH; i++) {
+            file << (int)vpacket.data[i] << ", ";
+        }
+
+        G711decode(vpacket.data, input);
+
+        file << std::endl;
+        for (int i = 0; i < G711_DATA_LENGTH; i++) {
+            file << input[i] << ", ";
+        }
+    }
 
     m_next_index++;
 
