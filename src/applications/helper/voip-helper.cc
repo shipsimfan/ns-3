@@ -26,11 +26,13 @@
 
 namespace ns3 {
 
-VoIPServerHelper::VoIPServerHelper(uint16_t port, uint32_t num_users) {
+VoIPServerHelper::VoIPServerHelper(uint16_t port, uint32_t num_users,
+                                   Codec codec) {
     m_factory.SetTypeId(VoIPServer::GetTypeId());
     SetAttribute("Port", UintegerValue(port));
     SetAttribute("NumUsers",
                  PointerValue(new VoIPServer::UserPairs(num_users)));
+    SetAttribute("Codec", UintegerValue(codec));
 }
 
 void VoIPServerHelper::SetAttribute(std::string name,
@@ -63,12 +65,13 @@ Ptr<Application> VoIPServerHelper::InstallPriv(Ptr<Node> node) const {
     return app;
 }
 
-VoIPClientHelper::VoIPClientHelper(Address address, uint16_t port,
-                                   uint32_t id) {
+VoIPClientHelper::VoIPClientHelper(Address address, uint16_t port, uint32_t id,
+                                   Codec codec) {
     m_factory.SetTypeId(VoIPClient::GetTypeId());
     SetAttribute("RemoteAddress", AddressValue(address));
     SetAttribute("RemotePort", UintegerValue(port));
     SetAttribute("ID", UintegerValue(id));
+    SetAttribute("Codec", UintegerValue(codec));
 }
 
 VoIPClientHelper::VoIPClientHelper(Address address) {

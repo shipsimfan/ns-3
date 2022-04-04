@@ -6,6 +6,7 @@
 #include "ns3/ipv4-address.h"
 #include "ns3/ptr.h"
 #include "ns3/traced-callback.h"
+#include "voip.h"
 
 namespace ns3 {
 
@@ -68,6 +69,7 @@ class VoIPClient : public Application {
     uint32_t m_id;
     uint32_t m_next_index;
     Time m_current;
+    Codec m_codec;
 
     uint32_t m_sent;       //!< Counter for sent packets
     Ptr<Socket> m_socket;  //!< Socket

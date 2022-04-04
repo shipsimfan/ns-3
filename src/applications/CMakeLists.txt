@@ -11,6 +11,7 @@ build_lib(
     model/application-packet-probe.cc
     model/bulk-send-application.cc
     model/codec-711.cc
+    model/codec-726.cc
     model/onoff-application.cc
     model/packet-loss-counter.cc
     model/packet-sink.cc
@@ -26,6 +27,7 @@ build_lib(
     model/udp-echo-server.cc
     model/udp-server.cc
     model/udp-trace-client.cc
+    model/voip.cc
     model/voip-client.cc
     model/voip-server.cc
   HEADER_FILES
@@ -40,6 +42,7 @@ build_lib(
     model/bulk-send-application.h
     model/onoff-application.h
     model/codec-711.h
+    model/codec-726.h
     model/packet-loss-counter.h
     model/packet-sink.h
     model/seq-ts-echo-header.h

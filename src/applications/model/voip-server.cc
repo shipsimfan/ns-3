@@ -14,7 +14,6 @@
 #include <ns3/uinteger.h>
 
 #include "voip-server.h"
-#include "voip.h"
 
 namespace ns3 {
 
@@ -31,6 +30,10 @@ TypeId VoIPServer::GetTypeId(void) {
             .AddAttribute("NumUsers", "Number of users", UintegerValue(0),
                           MakePointerAccessor(&VoIPServer::m_users),
                           MakePointerChecker<UserPairs>())
+            .AddAttribute("Codec", "The type of codec",
+                          UintegerValue(Codec::G711),
+                          MakeUintegerAccessor(&VoIPServer::m_codec),
+                          MakeUintegerChecker<bool>())
             .AddAttribute(
                 "Port", "Port on which we listen for incoming packets.",
                 UintegerValue(9), MakeUintegerAccessor(&VoIPServer::m_port),
@@ -130,25 +133,42 @@ void VoIPServer::HandleRead(Ptr<Socket> socket) {
         packet->RemoveAllPacketTags();
         packet->RemoveAllByteTags();
 
-        VoIPPacket vpacket;
-        packet->CopyData((uint8_t*)(&vpacket), sizeof(VoIPPacket));
+        VoIPPacket* vpacket = NULL;
+        switch (m_codec) {
+        case G711:
+            vpacket = new G711VoIPPacket();
+            break;
+
+        case G726:
+            vpacket = new G726VoIPPacket();
+            break;
+        }
+
+        packet->CopyData((uint8_t*)vpacket, vpacket->GetPacketSize());
 
         NS_LOG_INFO("At time " << Simulator::Now().As(Time::S)
-                               << " server recieved packet " << vpacket.index
-                               << " from client " << vpacket.id);
+                               << " server recieved packet "
+                               << vpacket->GetIndex() << " from client "
+                               << vpacket->GetID());
 
-        if (vpacket.id > m_users->num_users)
+        if (vpacket->GetID() > m_users->num_users)
             NS_LOG_ERROR("Packet id greater than number of users");
         else {
-            if (vpacket.index == m_users->users[vpacket.id].next_index)
-                m_users->users[vpacket.id].next_index++;
-            else if (vpacket.index > m_users->users[vpacket.id].next_index) {
-                m_users->users[vpacket.id].missed_packets +=
-                    vpacket.index - m_users->users[vpacket.id].next_index;
+            if (vpacket->GetIndex() ==
+                m_users->users[vpacket->GetID()].next_index)
+                m_users->users[vpacket->GetID()].next_index++;
+            else if (vpacket->GetIndex() >
+                     m_users->users[vpacket->GetID()].next_index) {
+                m_users->users[vpacket->GetID()].missed_packets +=
+                    vpacket->GetIndex() -
+                    m_users->users[vpacket->GetID()].next_index;
 
-                m_users->users[vpacket.id].next_index = vpacket.index + 1;
+                m_users->users[vpacket->GetID()].next_index =
+                    vpacket->GetIndex() + 1;
             }
         }
+
+        delete vpacket;
     }
 }
 

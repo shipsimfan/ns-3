@@ -6,6 +6,7 @@
 #include "ns3/event-id.h"
 #include "ns3/ptr.h"
 #include "ns3/traced-callback.h"
+#include "voip.h"
 
 namespace ns3 {
 
@@ -68,6 +69,7 @@ class VoIPServer : public Application {
     Ptr<Socket> m_socket6; //!< IPv6 Socket
     Address m_local;       //!< local multicast address
 
+    Codec m_codec;
     Ptr<UserPairs> m_users;
 
     /// Callbacks for tracing the packet Rx events

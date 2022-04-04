@@ -50,3 +50,4 @@ cmake-build-release/
 !.vscode/tasks.json
 
 G711encoding.csv
+G726encoding.csv

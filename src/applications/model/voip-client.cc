@@ -26,7 +26,7 @@ NS_LOG_COMPONENT_DEFINE("VoIPClientApplication");
 NS_OBJECT_ENSURE_REGISTERED(VoIPClient);
 
 const Time PACKET_INTERVAL = Seconds(1.0 / PACKETRATE);
-const double SAMPLE_RATE = (1.0 / PACKETRATE) / 1024.0;
+const double SAMPLE_RATE = (1.0 / PACKETRATE) / CODEC_INPUT_LENGTH;
 
 TypeId VoIPClient::GetTypeId(void) {
     static TypeId tid =
@@ -47,6 +47,10 @@ TypeId VoIPClient::GetTypeId(void) {
             .AddAttribute(
                 "Duration", "How long to make a call", TimeValue(Seconds(2.0)),
                 MakeTimeAccessor(&VoIPClient::m_duration), MakeTimeChecker())
+            .AddAttribute("Codec", "The type of codec",
+                          UintegerValue(Codec::G711),
+                          MakeUintegerAccessor(&VoIPClient::m_codec),
+                          MakeUintegerChecker<bool>())
             .AddAttribute("RemoteAddress",
                           "The destination Address of the outbound packets",
                           AddressValue(),
@@ -177,48 +181,84 @@ void VoIPClient::Send(void) {
 
     NS_ASSERT(m_sendEvent.IsExpired());
 
-    VoIPPacket vpacket;
-    vpacket.id = m_id;
-    vpacket.index = m_next_index;
-    vpacket.sent_time = Simulator::Now().GetMilliSeconds();
+    // Make a packet
+    VoIPPacket* vpacket = NULL;
+    switch (m_codec) {
+    case G711:
+        vpacket = new G711VoIPPacket(m_id, m_next_index);
+        break;
 
-    memset(vpacket.data, 0, sizeof(vpacket.data));
+    case G726:
+        vpacket = new G726VoIPPacket(m_id, m_next_index);
+        break;
+    }
 
-    // TODO: Generate voice data & encode it
+    // Make an input list
+    short* input = new short[CODEC_INPUT_LENGTH];
+
+    // Generate voice data & encode it
     double now = Simulator::Now().GetSeconds();
 
-    // make a input list
-    short input[G711_DATA_LENGTH];
-
-    // assign it through for loop
-    for (int i = 0; i < G711_DATA_LENGTH; i++) {
+    // Assign it through for loop
+    for (int i = 0; i < CODEC_INPUT_LENGTH; i++)
         input[i] = VoiceGenerator(now + i * SAMPLE_RATE);
+
+    // Encode input data
+    switch (m_codec) {
+    case G711:
+        G711encode(input, vpacket->GetData());
+        break;
+
+    case G726:
+        G726encode(input, vpacket->GetData());
+        break;
     }
 
-    G711encode(input, vpacket.data);
-
+    // Write to a csv if this is the first packet by the first device
     if (m_id == 0 && m_next_index == 0) {
-        std::ofstream file("./G711encoding.csv");
-        for (int i = 0; i < G711_DATA_LENGTH; i++) {
-            file << input[i] << ", ";
-        }
-        file << std::endl;
+        std::ofstream* file = NULL;
+        int data_length = 0;
+        switch (m_codec) {
+        case G711:
+            file = new std::ofstream("G711encoding.csv");
+            data_length = G711_DATA_LENGTH;
+            break;
 
-        for (int i = 0; i < G711_DATA_LENGTH; i++) {
-            file << (int)vpacket.data[i] << ", ";
+        case G726:
+            file = new std::ofstream("G726encoding.csv");
+            data_length = G726_DATA_LENGTH;
+            break;
         }
 
-        G711decode(vpacket.data, input);
+        for (int i = 0; i < CODEC_INPUT_LENGTH; i++)
+            *file << input[i] << ", ";
 
-        file << std::endl;
-        for (int i = 0; i < G711_DATA_LENGTH; i++) {
-            file << input[i] << ", ";
+        *file << std::endl;
+
+        for (int i = 0; i < data_length; i++)
+            *file << (int)vpacket->GetData()[i] << ", ";
+
+        *file << std::endl;
+
+        switch (m_codec) {
+        case G711:
+            G711decode(vpacket->GetData(), input);
+            break;
+
+        case G726:
+            G726decode(vpacket->GetData(), input);
+            break;
         }
+
+        for (int i = 0; i < CODEC_INPUT_LENGTH; i++)
+            *file << input[i] << ", ";
+
+        delete file;
     }
 
-    m_next_index++;
+    Ptr<Packet> p = Create<Packet>((uint8_t*)vpacket, vpacket->GetPacketSize());
 
-    Ptr<Packet> p = Create<Packet>((uint8_t*)(&vpacket), sizeof(vpacket));
+    delete vpacket;
 
     Address localAddress;
     m_socket->GetSockName(localAddress);
@@ -240,8 +280,9 @@ void VoIPClient::Send(void) {
     ++m_sent;
 
     NS_LOG_INFO("At time " << Simulator::Now().As(Time::S) << " client " << m_id
-                           << " sent packet " << vpacket.index);
+                           << " sent packet " << m_next_index);
 
+    m_next_index++;
     m_current += PACKET_INTERVAL;
 
     if (m_current < m_duration)

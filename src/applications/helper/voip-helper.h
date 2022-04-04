@@ -25,6 +25,7 @@
 #include "ns3/ipv6-address.h"
 #include "ns3/node-container.h"
 #include "ns3/object-factory.h"
+#include <ns3/voip.h>
 #include <stdint.h>
 
 namespace ns3 {
@@ -42,7 +43,7 @@ class VoIPServerHelper {
      *
      * \param port The port the server will wait on for incoming packets
      */
-    VoIPServerHelper(uint16_t port, uint32_t num_users);
+    VoIPServerHelper(uint16_t port, uint32_t num_users, Codec codec);
 
     /**
      * Record an attribute to be set in each Application after it is is created.
@@ -113,7 +114,7 @@ class VoIPClientHelper {
      * \param ip The IP address of the remote udp echo server
      * \param port The port number of the remote udp echo server
      */
-    VoIPClientHelper(Address ip, uint16_t port, uint32_t id);
+    VoIPClientHelper(Address ip, uint16_t port, uint32_t id, Codec codec);
     /**
      * Create VoIPClientHelper which will make life easier for people trying
      * to set up simulations with echos. Use this variant with addresses that do

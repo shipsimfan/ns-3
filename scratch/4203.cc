@@ -8,15 +8,11 @@
 #include <ns3/network-module.h>
 #include <ns3/point-to-point-helper.h>
 #include <ns3/voip-helper.h>
+#include <ns3/voip.h>
 
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("4203Simulator");
-
-enum Codec {
-    G711,
-    G726,
-};
 
 void display_simulation_info(Codec codec, uint32_t num_users);
 void run_simulation(Codec codec, uint32_t num_users);
@@ -39,9 +35,9 @@ int main(int argc, char* argv[]) {
     // Parse codec
     Codec codec;
     if (strcmp(argv[1], "g711") == 0)
-        codec = Codec::G711;
+        codec = G711;
     else if (strcmp(argv[1], "g726") == 0)
-        codec = Codec::G726;
+        codec = G726;
     else {
         std::string error_message("Invalid codec: \"");
         error_message.append(argv[1]);
@@ -66,9 +62,9 @@ int main(int argc, char* argv[]) {
 
 const char* get_codec_name(Codec codec) {
     switch (codec) {
-    case Codec::G711:
+    case G711:
         return "G711";
-    case Codec::G726:
+    case G726:
         return "G726";
     default:
         return "Unknown Codec";
@@ -178,7 +174,7 @@ void run_simulation(Codec codec, uint32_t num_users) {
     Ipv6Address remote_host_addr = internet_ip_interfaces.GetAddress(1, 1);
 
     // Start echo applications
-    VoIPServerHelper voip_server(9, num_users);
+    VoIPServerHelper voip_server(9, num_users, codec);
 
     ApplicationContainer server_applications = voip_server.Install(remote_host);
 
@@ -187,7 +183,7 @@ void run_simulation(Codec codec, uint32_t num_users) {
 
     ApplicationContainer client_applications[num_users];
     for (uint32_t i = 0; i < num_users; i++) {
-        VoIPClientHelper voip_client(remote_host_addr, 9, i);
+        VoIPClientHelper voip_client(remote_host_addr, 9, i, codec);
 
         // How often to make a call
         voip_client.SetAttribute("Frequency", TimeValue(Seconds(8.0)));
@@ -203,7 +199,7 @@ void run_simulation(Codec codec, uint32_t num_users) {
     }
 
     LogComponentEnable("VoIPClientApplication", LOG_LEVEL_INFO);
-    //LogComponentEnable("VoIPServerApplication", LOG_LEVEL_INFO);
+    LogComponentEnable("VoIPServerApplication", LOG_LEVEL_INFO);
 
     Simulator::Stop(Seconds(21.0));
     Simulator::Run();
