@@ -140,18 +140,21 @@ void VoIPServer::StopApplication() {
 
     for (int i = 0; i < m_users->num_users; i++) {
         double EndToEndDelay;
-        usentTime = m_users->users[i]
-                        .packetTimes[m_users->users[i].packetTimes.size() - 1]
-                        .sentTime;
-        ureceiveTime =
-            m_users->users[i]
-                .packetTimes[m_users->users[i].packetTimes.size() - 1]
-                .receivedTime;
+
+        for (int j = 0; j < m_users->users[i].packetTimes.size(); j++) {
+            usentTime = m_users->users[i].packetTimes[j].sentTime;
+            ureceiveTime = m_users->users[i].packetTimes[j].receivedTime;
+
+            EndToEndDelay += ureceiveTime - usentTime;
+        }
         // rounding to four decimal places
-        EndToEndDelay = round((ureceiveTime - usentTime) * 10000) / 10000;
+        EndToEndDelay = round((EndToEndDelay /
+                               (double)m_users->users[i].packetTimes.size()) *
+                              10000) /
+                        10000;
         sumDelay += EndToEndDelay;
-        NS_LOG_INFO("End to end delay for user " << i << " is "
-                                                 << EndToEndDelay);
+        NS_LOG_INFO("End to end delay for user " << i << " is " << EndToEndDelay
+                                                 << "s");
 
         packetLoss =
             ((m_users->users[i].missed_packets) /
@@ -161,36 +164,38 @@ void VoIPServer::StopApplication() {
         NS_LOG_INFO("Packet loss for user " << i << " is " << packetLoss
                                             << "%");
 
-        for (int j = 1; j < sizeof(m_users->users[i].packetTimes); j = j + 2) {
+        for (int j = 1; j < m_users->users[i].packetTimes.size(); j++) {
             sentTime1 = m_users->users[i].packetTimes[j - 1].sentTime;
             sentTime2 = m_users->users[i].packetTimes[j].sentTime;
 
             receiveTime1 = m_users->users[i].packetTimes[j - 1].receivedTime;
             receiveTime2 = m_users->users[i].packetTimes[j].receivedTime;
 
-            jitter += (receiveTime2 - receiveTime1) - (sentTime2 - sentTime1);
+            jitter += (receiveTime2 - sentTime1) - (sentTime2 - receiveTime1);
             numJitter++;
         }
         jitterPerUser = (jitter / numJitter);
-        totalJitter += jitterPerUser;
+        totalJitter += jitterPerUser < 0 ? -jitterPerUser : jitterPerUser;
         numJitter = 0;
         jitter = 0;
-        NS_LOG_INFO("Jitter for user " << i << " is " << jitterPerUser);
+        NS_LOG_INFO("Jitter for user " << i << " is " << jitterPerUser << "s");
 
         std::size_t bytes_received = sizeof(VoIPPacket);
         // using end to end delay but not sure what to include in simulator time
-        throughput = (bytes_received * 8) / (EndToEndDelay / 1000000);
+        throughput = (bytes_received * 8) / (EndToEndDelay / 1000000) / 20.0;
         throughputSum += throughput;
-        NS_LOG_INFO("Throughput for user " << i << " is " << throughput);
+        NS_LOG_INFO("Throughput for user " << i << " is " << throughput / 1000
+                                           << "kbit/s");
         NS_LOG_INFO("");
     }
     NS_LOG_INFO("Average of End to End Delay for all users is "
-                << sumDelay / (m_users->num_users));
-    NS_LOG_INFO("Sum of throughput all users is " << throughputSum);
+                << sumDelay / (m_users->num_users) << "s");
+    NS_LOG_INFO("Sum of throughput all users is " << throughputSum / 1000
+                                                  << "kbit/s");
     NS_LOG_INFO("Average of packet loss for all users is "
-                << packetLossSum / (m_users->num_users));
+                << packetLossSum / (m_users->num_users) << "%");
     NS_LOG_INFO("Average of Jitter for all users is "
-                << totalJitter / (m_users->num_users));
+                << totalJitter / (m_users->num_users) << "s");
 }
 
 void VoIPServer::HandleRead(Ptr<Socket> socket) {
