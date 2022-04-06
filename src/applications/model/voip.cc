@@ -4,7 +4,7 @@
 using namespace ns3;
 
 VoIPPacket::VoIPPacket(uint32_t id, uint32_t index)
-    : id(id), index(index), sent_time(Simulator::Now().GetMilliSeconds()) {}
+    : id(id), index(index), sent_time(Simulator::Now().GetSeconds()) {}
 
 uint32_t VoIPPacket::GetID() const noexcept { return id; }
 
