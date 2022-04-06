@@ -171,11 +171,12 @@ void VoIPServer::StopApplication() {
             receiveTime1 = m_users->users[i].packetTimes[j - 1].receivedTime;
             receiveTime2 = m_users->users[i].packetTimes[j].receivedTime;
 
-            jitter += (receiveTime2 - sentTime1) - (sentTime2 - receiveTime1);
+            double ji = (receiveTime1 - sentTime1) - (receiveTime2 - sentTime2);
+            jitter += ji < 0 ? -ji : ji;
             numJitter++;
         }
         jitterPerUser = (jitter / numJitter);
-        totalJitter += jitterPerUser < 0 ? -jitterPerUser : jitterPerUser;
+        totalJitter += jitterPerUser;
         numJitter = 0;
         jitter = 0;
         NS_LOG_INFO("Jitter for user " << i << " is " << jitterPerUser << "s");
