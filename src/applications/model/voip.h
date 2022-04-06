@@ -6,7 +6,7 @@
 struct VoIPPacket {
     uint32_t id;
     uint32_t index;
-    int64_t sent_time;
+    double sent_time;
     uint8_t data[1024];
 };
 

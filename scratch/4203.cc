@@ -8,8 +8,12 @@
 #include <ns3/network-module.h>
 #include <ns3/point-to-point-helper.h>
 #include <ns3/voip-helper.h>
-
+#include "ns3/flow-monitor.h"
+#include "ns3/flow-monitor-helper.h"
+#include "ns3/flow-monitor-module.h"
+#include "ns3/ipv6-header.h"
 using namespace ns3;
+
 
 NS_LOG_COMPONENT_DEFINE("4203Simulator");
 
@@ -17,6 +21,8 @@ enum Codec {
     G711,
     G726,
 };
+
+
 
 void display_simulation_info(Codec codec, uint32_t num_users);
 void run_simulation(Codec codec, uint32_t num_users);
@@ -91,6 +97,7 @@ void display_simulation_info(Codec codec, uint32_t num_users) {
 // Connection Type:    LTE     SGW     PGW     ETH
 // Data Path:       UE --> ENB --> EPC --> P2P --> RH
 void run_simulation(Codec codec, uint32_t num_users) {
+
     // Create LTE & EPC Helpers
     Ptr<LteHelper> lte_helper = CreateObject<LteHelper>();
     Ptr<PointToPointEpcHelper> epc_helper =
@@ -115,6 +122,10 @@ void run_simulation(Codec codec, uint32_t num_users) {
                                   DataRateValue(DataRate("100Gb/s")));
     p2p_helper.SetDeviceAttribute("Mtu", UintegerValue(1500));
     p2p_helper.SetChannelAttribute("Delay", TimeValue(MilliSeconds(10)));
+    int SentPackets = 0;
+    int ReceivedPackets = 0;
+    int LostPackets = 0;
+
     // Connects PGW --> Internet (Point-to-Point) --> Remote Host
     NetDeviceContainer internet_devices = p2p_helper.Install(pgw, remote_host);
 
@@ -136,6 +147,8 @@ void run_simulation(Codec codec, uint32_t num_users) {
     mobility_helper.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     mobility_helper.Install(users);
     BuildingsHelper::Install(users);
+
+    
 
     // Install the IP stack on the users
     internet.Install(users);
@@ -188,7 +201,7 @@ void run_simulation(Codec codec, uint32_t num_users) {
     ApplicationContainer client_applications[num_users];
     for (uint32_t i = 0; i < num_users; i++) {
         VoIPClientHelper voip_client(remote_host_addr, 9, i);
-
+        
         // How often to make a call
         voip_client.SetAttribute("Frequency", TimeValue(Seconds(8.0)));
         // How long for the call
@@ -200,13 +213,15 @@ void run_simulation(Codec codec, uint32_t num_users) {
 
         client_applications[i].Start(Seconds(1.0));
         client_applications[i].Stop(Seconds(20.0));
+
     }
 
     LogComponentEnable("VoIPClientApplication", LOG_LEVEL_INFO);
     LogComponentEnable("VoIPServerApplication", LOG_LEVEL_INFO);
 
-    Simulator::Stop(Seconds(21.0));
-    Simulator::Run();
 
+    Simulator::Stop(Seconds(25.0));
+    Simulator::Run();
+    
     Simulator::Destroy();
 }

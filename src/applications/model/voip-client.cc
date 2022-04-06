@@ -161,7 +161,7 @@ void VoIPClient::Send(void) {
     VoIPPacket vpacket;
     vpacket.id = m_id;
     vpacket.index = m_next_index;
-    vpacket.sent_time = Simulator::Now().GetMilliSeconds();
+    vpacket.sent_time = Simulator::Now().GetSeconds();
 
     memset(vpacket.data, 0, sizeof(vpacket.data));
     // TODO: Generate voice data & encode it
