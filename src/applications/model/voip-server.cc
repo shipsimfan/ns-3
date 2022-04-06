@@ -14,9 +14,10 @@
 #include <ns3/uinteger.h>
 
 #include "voip-server.h"
+#include "voip.h"
 
 namespace ns3 {
-
+int numReceivedPackets = 0;
 NS_LOG_COMPONENT_DEFINE("VoIPServerApplication");
 
 NS_OBJECT_ENSURE_REGISTERED(VoIPServer);
@@ -29,7 +30,7 @@ TypeId VoIPServer::GetTypeId(void) {
             .AddConstructor<VoIPServer>()
             .AddAttribute("NumUsers", "Number of users", UintegerValue(0),
                           MakePointerAccessor(&VoIPServer::m_users),
-                          MakePointerChecker<UserPairs>())
+                          MakePointerChecker<UsersStat>())
             .AddAttribute("Codec", "The type of codec",
                           UintegerValue(Codec::G711),
                           MakeUintegerAccessor(&VoIPServer::m_codec),
@@ -117,6 +118,79 @@ void VoIPServer::StopApplication() {
         m_socket6->Close();
         m_socket6->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
     }
+    // calculation using m_user
+    // NS_LOG_UNCOND(Simulator::Now().As(Time::S));
+    // NS_LOG_INFO(m_users->num_users);
+
+    double usentTime;
+    double ureceiveTime;
+    int packetLoss;
+    double jitter = 0;
+    double sentTime1;
+    double sentTime2;
+    double receiveTime1;
+    double receiveTime2;
+    double jitterPerUser = 0;
+    int numJitter = 0;
+    double totalJitter = 0;
+    double throughput;
+    double sumDelay = 0;
+    double throughputSum = 0;
+    double packetLossSum = 0;
+
+    for (int i = 0; i < m_users->num_users; i++) {
+        double EndToEndDelay;
+        usentTime = m_users->users[i]
+                        .packetTimes[m_users->users[i].packetTimes.size() - 1]
+                        .sentTime;
+        ureceiveTime =
+            m_users->users[i]
+                .packetTimes[m_users->users[i].packetTimes.size() - 1]
+                .receivedTime;
+        // rounding to four decimal places
+        EndToEndDelay = round((ureceiveTime - usentTime) * 10000) / 10000;
+        sumDelay += EndToEndDelay;
+        NS_LOG_INFO("End to end delay for user " << i << " is "
+                                                 << EndToEndDelay);
+
+        packetLoss =
+            ((m_users->users[i].missed_packets) /
+             ((m_users->users[i].missed_packets) + numReceivedPackets)) *
+            100;
+        packetLossSum += packetLoss;
+        NS_LOG_INFO("Packet loss for user " << i << " is " << packetLoss
+                                            << "%");
+
+        for (int j = 1; j < sizeof(m_users->users[i].packetTimes); j = j + 2) {
+            sentTime1 = m_users->users[i].packetTimes[j - 1].sentTime;
+            sentTime2 = m_users->users[i].packetTimes[j].sentTime;
+
+            receiveTime1 = m_users->users[i].packetTimes[j - 1].receivedTime;
+            receiveTime2 = m_users->users[i].packetTimes[j].receivedTime;
+
+            jitter += (receiveTime2 - receiveTime1) - (sentTime2 - sentTime1);
+            numJitter++;
+        }
+        jitterPerUser = (jitter / numJitter);
+        totalJitter += jitterPerUser;
+        numJitter = 0;
+        jitter = 0;
+        NS_LOG_INFO("Jitter for user " << i << " is " << jitterPerUser);
+
+        std::size_t bytes_received = sizeof(VoIPPacket);
+        // using end to end delay but not sure what to include in simulator time
+        throughput = (bytes_received * 8) / (EndToEndDelay / 1000000);
+        throughputSum += throughput;
+        NS_LOG_INFO("Throughput for user " << i << " is " << throughput);
+        NS_LOG_INFO("");
+    }
+    NS_LOG_INFO("Average of End to End Delay for all users is "
+                << sumDelay / (m_users->num_users));
+    NS_LOG_INFO("Sum of throughput all users is " << throughputSum);
+    NS_LOG_INFO("Average of packet loss for all users is "
+                << packetLossSum / (m_users->num_users));
+    NS_LOG_INFO("Average of Jitter for all users is "
+                << totalJitter / (m_users->num_users));
 }
 
 void VoIPServer::HandleRead(Ptr<Socket> socket) {
@@ -166,31 +240,38 @@ void VoIPServer::HandleRead(Ptr<Socket> socket) {
                 m_users->users[vpacket->GetID()].next_index =
                     vpacket->GetIndex() + 1;
             }
+            m_users->users[vpacket->GetID()].packetTimes.push_back(PacketTime(
+                vpacket->GetSentTime(), Simulator::Now().GetSeconds()));
         }
 
         delete vpacket;
+        numReceivedPackets++;
     }
 }
 
-VoIPServer::UserPairs::UserPairs() {
+VoIPServer::UsersStat::UsersStat() {
     NS_LOG_FUNCTION(this);
     users = NULL;
     num_users = 0;
 }
 
-VoIPServer::UserPairs::UserPairs(uint32_t num_users) : num_users(num_users) {
+VoIPServer::UsersStat::UsersStat(uint32_t num_users) : num_users(num_users) {
     NS_LOG_FUNCTION(this << num_users);
-    users = new VoIPServer::UserPair[num_users];
+    users = new VoIPServer::UserStat[num_users];
     for (uint32_t i = 0; i < num_users; i++) {
         users[i].next_index = 0;
         users[i].missed_packets = 0;
+        users[i].packetTimes = std::vector<PacketTime>();
     }
 }
 
-VoIPServer::UserPairs::~UserPairs() {
+VoIPServer::UsersStat::~UsersStat() {
     NS_LOG_FUNCTION(this);
     if (users != NULL)
         delete users;
 }
+
+VoIPServer::PacketTime::PacketTime(double sentTime, double receivedTime)
+    : sentTime(sentTime), receivedTime(receivedTime) {}
 
 } // Namespace ns3

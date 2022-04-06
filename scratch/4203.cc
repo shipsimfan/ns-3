@@ -87,6 +87,7 @@ void display_simulation_info(Codec codec, uint32_t num_users) {
 // Connection Type:    LTE     SGW     PGW     ETH
 // Data Path:       UE --> ENB --> EPC --> P2P --> RH
 void run_simulation(Codec codec, uint32_t num_users) {
+
     // Create LTE & EPC Helpers
     Ptr<LteHelper> lte_helper = CreateObject<LteHelper>();
     Ptr<PointToPointEpcHelper> epc_helper =
@@ -111,6 +112,7 @@ void run_simulation(Codec codec, uint32_t num_users) {
                                   DataRateValue(DataRate("100Gb/s")));
     p2p_helper.SetDeviceAttribute("Mtu", UintegerValue(1500));
     p2p_helper.SetChannelAttribute("Delay", TimeValue(MilliSeconds(10)));
+
     // Connects PGW --> Internet (Point-to-Point) --> Remote Host
     NetDeviceContainer internet_devices = p2p_helper.Install(pgw, remote_host);
 
@@ -201,7 +203,7 @@ void run_simulation(Codec codec, uint32_t num_users) {
     LogComponentEnable("VoIPClientApplication", LOG_LEVEL_INFO);
     LogComponentEnable("VoIPServerApplication", LOG_LEVEL_INFO);
 
-    Simulator::Stop(Seconds(21.0));
+    Simulator::Stop(Seconds(25.0));
     Simulator::Run();
 
     Simulator::Destroy();

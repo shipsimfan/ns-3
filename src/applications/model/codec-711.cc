@@ -3,7 +3,6 @@
 
 using namespace std;
 
-const int G711_SAMPLES_PER_FRAME = 160;
 const int TABLE_SIZE = 8;
 const int BIAS = 0x84; /* Bias for linear code. */
 const int CLIP = 8159;

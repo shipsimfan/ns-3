@@ -31,7 +31,7 @@ VoIPServerHelper::VoIPServerHelper(uint16_t port, uint32_t num_users,
     m_factory.SetTypeId(VoIPServer::GetTypeId());
     SetAttribute("Port", UintegerValue(port));
     SetAttribute("NumUsers",
-                 PointerValue(new VoIPServer::UserPairs(num_users)));
+                 PointerValue(new VoIPServer::UsersStat(num_users)));
     SetAttribute("Codec", UintegerValue(codec));
 }
 

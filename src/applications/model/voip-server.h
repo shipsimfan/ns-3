@@ -8,6 +8,8 @@
 #include "ns3/traced-callback.h"
 #include "voip.h"
 
+#include <vector>
+
 namespace ns3 {
 
 class Socket;
@@ -26,18 +28,25 @@ class Packet;
  */
 class VoIPServer : public Application {
   public:
-    struct UserPair {
+    struct PacketTime {
+        double sentTime;
+        double receivedTime;
+
+        PacketTime(double sentTime, double receivedTime);
+    };
+    struct UserStat {
         uint32_t next_index;
         uint32_t missed_packets;
+        std::vector<PacketTime> packetTimes;
     };
 
-    struct UserPairs : public Object {
-        UserPair* users;
+    struct UsersStat : public Object {
+        UserStat* users;
         uint32_t num_users;
 
-        UserPairs();
-        UserPairs(uint32_t num_users);
-        ~UserPairs();
+        UsersStat();
+        UsersStat(uint32_t num_users);
+        ~UsersStat();
     };
 
     /**
@@ -69,8 +78,8 @@ class VoIPServer : public Application {
     Ptr<Socket> m_socket6; //!< IPv6 Socket
     Address m_local;       //!< local multicast address
 
+    Ptr<UsersStat> m_users;
     Codec m_codec;
-    Ptr<UserPairs> m_users;
 
     /// Callbacks for tracing the packet Rx events
     TracedCallback<Ptr<const Packet>> m_rxTrace;
