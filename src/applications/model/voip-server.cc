@@ -138,10 +138,11 @@ void VoIPServer::StopApplication() {
     double throughputSum = 0;
     double packetLossSum = 0;
 
-    for (int i = 0; i < m_users->num_users; i++) {
-        double EndToEndDelay;
+    for (uint32_t i = 0; i < m_users->num_users; i++) {
+        double EndToEndDelay = 0.;
 
-        for (int j = 0; j < m_users->users[i].packetTimes.size(); j++) {
+        for (long unsigned j = 0; j < m_users->users[i].packetTimes.size();
+             j++) {
             usentTime = m_users->users[i].packetTimes[j].sentTime;
             ureceiveTime = m_users->users[i].packetTimes[j].receivedTime;
 
@@ -164,7 +165,8 @@ void VoIPServer::StopApplication() {
         NS_LOG_INFO("Packet loss for user " << i << " is " << packetLoss
                                             << "%");
 
-        for (int j = 1; j < m_users->users[i].packetTimes.size(); j++) {
+        for (long unsigned j = 1; j < m_users->users[i].packetTimes.size();
+             j++) {
             sentTime1 = m_users->users[i].packetTimes[j - 1].sentTime;
             sentTime2 = m_users->users[i].packetTimes[j].sentTime;
 
