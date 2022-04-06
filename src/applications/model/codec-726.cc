@@ -7,7 +7,7 @@
 #define AUDIO_ENCODING_ALAW (2)   /* ISDN A-law */
 #define AUDIO_ENCODING_LINEAR (3) /* PCM 2's-complement (0-center) */
 
-const int G726_SAMPLES_PER_FRAME = 160;
+const int G726_SAMPLES_PER_FRAME = 80;
 
 /* Comes from quantizer decision level tables (Table 7/G.726)
  */
@@ -530,7 +530,7 @@ int unpack(unsigned char* cw, unsigned char* buf, unsigned char num_cw,
 }
 
 void G726encode(short* inbuf, unsigned char* outbuf) {
-    register short* s;
+    short* s;
     int i;
     unsigned char cw[8]; /* Maximum of 8 codewords in octet aligned packing */
 
@@ -538,7 +538,7 @@ void G726encode(short* inbuf, unsigned char* outbuf) {
 
     s = inbuf;
 
-    memset(outbuf, 0, 160);
+    memset(outbuf, 0, 80);
 
     // we use 32 kbit/s
     for (i = 0; i < G726_SAMPLES_PER_FRAME; i += 2) {
