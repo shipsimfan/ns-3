@@ -1,3 +1,4 @@
+#include <fstream>
 #include <ns3/address-utils.h>
 #include <ns3/inet-socket-address.h>
 #include <ns3/inet6-socket-address.h>
@@ -191,14 +192,36 @@ void VoIPServer::StopApplication() {
                                            << "kbit/s");
         NS_LOG_INFO("");
     }
+
+    double total_end_to_end = sumDelay / (m_users->num_users);
+    double total_jitter = totalJitter / (m_users->num_users);
+    double total_packet_loss = packetLossSum / (m_users->num_users);
     NS_LOG_INFO("Average of End to End Delay for all users is "
-                << sumDelay / (m_users->num_users) << "s");
+                << total_end_to_end << "s");
     NS_LOG_INFO("Sum of throughput all users is " << throughputSum / 1000
                                                   << "kbit/s");
-    NS_LOG_INFO("Average of packet loss for all users is "
-                << packetLossSum / (m_users->num_users) << "%");
-    NS_LOG_INFO("Average of Jitter for all users is "
-                << totalJitter / (m_users->num_users) << "s");
+    NS_LOG_INFO("Average of packet loss for all users is " << total_packet_loss
+                                                           << "%");
+    NS_LOG_INFO("Average of Jitter for all users is " << total_jitter << "s");
+
+    std::ostringstream oss;
+    switch (m_codec) {
+    case G711:
+        oss << "G711";
+        break;
+    case G726:
+        oss << "G726";
+        break;
+    }
+
+    oss << "-Results.csv";
+
+    std::ofstream file;
+    file.open(oss.str(), std::ios_base::app);
+
+    file << m_users->num_users << ", " << total_end_to_end << ", "
+         << total_jitter << ", " << throughputSum << ", " << total_packet_loss
+         << std::endl;
 }
 
 void VoIPServer::HandleRead(Ptr<Socket> socket) {

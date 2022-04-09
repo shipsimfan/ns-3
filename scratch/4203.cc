@@ -14,17 +14,19 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("4203Simulator");
 
-void display_simulation_info(Codec codec, uint32_t num_users);
+const uint32_t NUM_TESTS = 3;
+
 void run_simulation(Codec codec, uint32_t num_users);
+void prep_file(Codec codec);
 
 int main(int argc, char* argv[]) {
     LogComponentEnable("4203Simulator", LOG_LEVEL_INFO);
 
     // Verify argument count
-    if (argc != 3) {
+    if (argc != 2 && argc != 3) {
         std::string usage_message("USAGE: ");
         usage_message.append(argv[0]);
-        usage_message.append(" CODEC USERS");
+        usage_message.append(" CODEC [LOG]");
 
         NS_LOG_ERROR("No specified codec or simulation parameters");
         NS_LOG_ERROR(usage_message);
@@ -46,14 +48,17 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Parse node users
-    uint32_t num_users = (uint32_t)std::stoi(argv[2]);
+    // Parse logging
+    if (argc == 3) {
+        LogComponentEnable("VoIPClientApplication", LOG_LEVEL_INFO);
+        LogComponentEnable("VoIPServerApplication", LOG_LEVEL_INFO);
+    }
 
-    // Display simulation information
-    display_simulation_info(codec, num_users);
+    // Prep file
 
     // Run simulation
-    run_simulation(codec, num_users);
+    for (uint32_t i = 1; i < NUM_TESTS + 1; i++)
+        run_simulation(codec, i);
 
     NS_LOG_INFO("Simulation completed successfully");
 
@@ -71,14 +76,24 @@ const char* get_codec_name(Codec codec) {
     }
 }
 
-void display_simulation_info(Codec codec, uint32_t num_users) {
-    std::string codec_string("Selected Codec: ");
-    codec_string.append(get_codec_name(codec));
-    NS_LOG_INFO(codec_string);
+void prep_file(Codec codec) {
+    std::ostringstream oss;
+    switch (codec) {
+    case G711:
+        oss << "G711";
+        break;
+    case G726:
+        oss << "G726";
+        break;
+    }
 
-    std::string num_string("Number of Users: ");
-    num_string.append(std::to_string(num_users));
-    NS_LOG_INFO(num_string);
+    oss << "-Results.csv";
+
+    std::ofstream file(oss.str());
+
+    file << "Number of Users, End-to-End Delay (s), Jitter (s), Throughput "
+            "(bps), Packet Loss (%)"
+         << std::endl;
 }
 
 // Modified from src/lte/examples/lena-simple.cc
@@ -199,9 +214,6 @@ void run_simulation(Codec codec, uint32_t num_users) {
         client_applications[i].Start(Seconds(1.0));
         client_applications[i].Stop(Seconds(20.0));
     }
-
-    LogComponentEnable("VoIPClientApplication", LOG_LEVEL_INFO);
-    LogComponentEnable("VoIPServerApplication", LOG_LEVEL_INFO);
 
     Simulator::Stop(Seconds(25.0));
     Simulator::Run();
